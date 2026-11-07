@@ -22,7 +22,7 @@ https://zainaaboobakuru905-png.github.io/baazar-mv/
 - Seller applications require manual approval by a trusted administrator in Supabase.
 - BazaarMV currently records order requests only. It does not collect online payments or verify BML transfers.
 - Instagram and Facebook Shop / messaging synchronisation is not connected. This requires a Meta app, approved permissions, webhooks and a secure backend.
-- Product photos currently use public image URLs; direct uploads have not been configured.
+- Seller dashboard supports direct product photo uploads to the public `product-images` Supabase Storage bucket (maximum 5 MB). Run `supabase/product-images-storage.sql` once in the Supabase SQL Editor after merging this feature.
 - Add and review a privacy notice, terms, support contact and data-deletion process before accepting public customer information.
 - Test the complete buyer and seller journeys with separate accounts before launch.
 
