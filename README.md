@@ -1,21 +1,29 @@
 # BazaarMV
 
-A responsive landing page and marketplace prototype for BazaarMV, a social-commerce platform concept built for Maldivian small businesses.
+BazaarMV is a responsive marketplace for discovering products from Maldivian small businesses.
 
-## Preview locally
-Open `index.html` in a browser. No build step is required.
+## Current website features
 
-## Included in this prototype
-- Responsive landing page and navigation
-- Product marketplace with category filters and search
-- Sample product cards with MVR pricing
-- Seller / shopper interest modal
-- Demo lead capture stored in the browser's localStorage
+- Responsive marketplace with product search and category filters.
+- Supabase-backed community product listings, seller applications and seller accounts.
+- Seller dashboard for adding, editing and deleting listings, managing stock, viewing incoming orders and updating order status.
+- Shopper cart and order requests, with stock checked and reserved by a Supabase database function.
+- Shopper order-tracking page.
+- Sample product cards are display examples only; they cannot be ordered.
 
-## Important: prototype vs production
-The listings and seller details are sample content. The interest form stores data only in the visitor's browser; it does not send data to a server.
+## Open the website
 
-Real Instagram and Facebook Shop / messaging integration requires Meta app setup, approved permissions, webhooks, and a secure backend. BML payment confirmation requires an approved payment or merchant integration and server-side verification. Never verify payments solely from screenshots on the client. Add authentication, database-backed inventory/orders, server-side validation, privacy controls, and deployment configuration before accepting real customers or payments.
+The published site is hosted with GitHub Pages:
+https://zainaaboobakuru905-png.github.io/baazar-mv/
 
-## Deploy
-Enable GitHub Pages in the repository settings and select the `main` branch with `/ (root)` as the source. The site will be served from `index.html`.
+## Important limitations before public launch
+
+- Email confirmation depends on the Supabase email provider and its sending limits.
+- Seller applications require manual approval by a trusted administrator in Supabase.
+- BazaarMV currently records order requests only. It does not collect online payments or verify BML transfers.
+- Instagram and Facebook Shop / messaging synchronisation is not connected. This requires a Meta app, approved permissions, webhooks and a secure backend.
+- Product photos currently use public image URLs; direct uploads have not been configured.
+- Add and review a privacy notice, terms, support contact and data-deletion process before accepting public customer information.
+- Test the complete buyer and seller journeys with separate accounts before launch.
+
+Never put a Supabase service-role key, database password, email-provider password or other secret in browser code or a public repository. Only the Supabase publishable/anon key belongs in the browser configuration.
