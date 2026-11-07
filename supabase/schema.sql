@@ -130,3 +130,32 @@ create policy "Approved sellers delete own products" on public.products
 
 -- Orders remain read-only from the browser until a trusted checkout function
 -- validates product prices, checks stock, writes order rows and decrements stock atomically.
+
+-- Automatically create a profile when an account is registered.
+create or replace function public.handle_new_bazaar_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+ insert into public.profiles (id, display_name)
+ values (new.id, coalesce(new.raw_user_meta_data ->> 'display_name', ''))
+ on conflict (id) do nothing;
+ return new;
+end;
+$$;
+
+do $$
+begin
+ if not exists (
+   select 1 from pg_trigger
+   where tgname = 'on_bazaar_auth_user_created'
+     and tgrelid = 'auth.users'::regclass
+ ) then
+   create trigger on_bazaar_auth_user_created
+   after insert on auth.users
+   for each row execute procedure public.handle_new_bazaar_user();
+ end if;
+end;
+$$;
