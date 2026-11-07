@@ -3,6 +3,6 @@
 // Only use the Supabase publishable key (sb_publishable_...) or legacy anon key here.
 // NEVER put a database password, secret key, or service_role key in this file.
 window.BAZAARMV_SUPABASE = {
-  url: "https://YOUR-PROJECT-REF.supabase.co",
-  publishableKey: "YOUR_SUPABASE_PUBLISHABLE_KEY"
+  url: "https://uoxwcbbkiqmasfpujggk.supabase.co",
+  publishableKey: "sb_publishable_MH5nRNABER2bL-s4rsk7Jw_UjbxAYbL"
 };
