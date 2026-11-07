@@ -1,32 +1,34 @@
-# BazaarMV Supabase setup
+# BazaarMV Supabase setup and current status
 
-The repository now contains a database foundation. The published website is still a static prototype and is not connected to Supabase yet.
+The published BazaarMV site uses Supabase for accounts, seller applications, product listings, inventory and order requests.
 
-## Set up the project
-1. Create a Supabase project at https://supabase.com/dashboard.
-2. Keep the database password private.
-3. In Project Settings → API, copy the Project URL and publishable/anon key. Never use a service_role key in browser code or send it in chat.
-4. Open SQL Editor and run the complete `supabase/schema.sql` file from this repository.
-5. Enable Email under Authentication → Providers. Set the published BazaarMV URL as the Site URL and add it to allowed redirect URLs.
+## Configuration already present in this repository
 
-## What the schema creates
-- Profiles linked to authenticated accounts.
-- Seller applications with pending/approved/rejected status.
-- Products with MVR price and stock quantity.
-- Orders and order items.
-- Row Level Security policies. Product listing writes are restricted to sellers whose application is approved.
+- `supabase/schema.sql`: profiles, seller applications, products, orders, order items, row-level security and the profile-creation trigger.
+- `supabase/marketplace-orders.sql`: secure database functions for placing order requests, reserving stock and seller order-status updates.
+- `supabase-config.js`: the project URL and browser-safe publishable key.
+- `auth.html`: shopper account creation/sign-in and seller application form.
+- `seller.html`: seller product and order dashboard.
+- `index.html`: marketplace, search, cart and order-request flow.
+- `my-orders.html`: buyer order tracking.
 
-A trusted administrator must approve seller applications from the Supabase dashboard. Do not make approval a public self-service action.
+The project owner previously reported that the base schema and marketplace-orders migration ran successfully in Supabase SQL Editor. If a database function or policy is missing, compare the live Supabase database with the two SQL files before re-running migrations.
 
-## Still required before the site is live
-- Add a signup/login UI and connect it to Supabase Auth.
-- Replace localStorage product reads/writes with authenticated database calls.
-- Build a trusted server-side checkout function that recalculates prices, checks stock, creates orders and decrements stock atomically.
-- Add safe seller order-status actions, image storage rules and moderation.
-- Add privacy policy, terms, customer support and a data deletion process.
-- Test with separate buyer and seller accounts before launch.
+## Seller approvals
 
-## Payments and social integrations
-BML payments need an approved merchant account and integration. Payment status must be confirmed server-side; a screenshot alone is not proof of payment. Instagram/Facebook syncing requires Meta app setup, approved permissions and a backend. Never ask sellers for their social account passwords.
+Seller applications start as `pending`. A trusted administrator must review and change the application's `approval_status` in the Supabase dashboard. Do not create a public approval button or allow users to approve themselves.
 
-Do not accept real customer data or payments until the authentication, checkout, security and privacy work is complete and tested.
+## Email confirmation
+
+The email template controls the contents of the message, but it cannot fix provider sending limits or SMTP delivery errors. The built-in Supabase email service has rate limits. Avoid repeatedly requesting messages when a send error appears. Do not share confirmation URLs, passwords, API keys or SMTP credentials in chat.
+
+## What is not connected yet
+
+- **Online payments / BML:** BazaarMV does not collect payments. A real BML merchant integration and server-side payment verification are required. A screenshot by itself is not proof of payment.
+- **Instagram and Facebook integration:** Requires a Meta developer app, approved permissions, webhooks and a secure backend. Never ask sellers for their social-media passwords.
+- **Direct product photo uploads:** The current seller form accepts a public image URL. Supabase Storage bucket and access policies are not configured here.
+- **Launch essentials:** Add and review privacy notice, terms, support contact and data-deletion process. Test with separate buyer and approved seller accounts before inviting customers.
+
+## Security reminders
+
+Use only the Supabase publishable/anon key in `supabase-config.js`. Never put a service-role key, database password or SMTP password in the website or GitHub repository.
