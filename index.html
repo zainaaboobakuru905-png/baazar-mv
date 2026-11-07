@@ -65,7 +65,7 @@ footer{background:#0d302f;color:#c7d9d3;padding:45px 0 25px}.footer-top{display:
 <div class="modal-backdrop" id="modal" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modal-head"><h2 id="modalTitle">Get started with BazaarMV</h2><button class="close" onclick="closeModal()">×</button></div><p id="modalDesc">Leave your details and we'll be in touch when BazaarMV opens its doors.</p><form id="leadForm" onsubmit="submitLead(event)"><label class="field"><span>Your name</span><input required name="name" placeholder="Name"></label><label class="field"><span>Email address</span><input required type="email" name="email" placeholder="you@example.com"></label><label class="field"><span>I'm interested in</span><select name="interest"><option>Shopping on BazaarMV</option><option>Selling on BazaarMV</option><option>Partnering with BazaarMV</option></select></label><button class="btn btn-primary" style="width:100%;margin-top:7px">Send interest →</button></form></div></div>
 <div class="modal-backdrop" id="cartModal" onclick="if(event.target===this)closeCart()"><div class="modal"><div class="modal-head"><h2>Your shopping cart</h2><button class="close" onclick="closeCart()">×</button></div><div id="cartContents"></div><button class="btn btn-primary" id="checkoutBtn" style="width:100%;margin-top:16px" onclick="placeDemoOrder()">Place demo order</button><p class="muted" style="margin:12px 0 0">Demo only: no payment is taken and this order is not sent to a seller. It is saved only in this browser.</p></div></div>
 <div class="toast" id="toast"></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script>
+<script src="supabase-config.js"></script>
 <script>
 const oldRenderProducts=renderProducts;
 let dbProducts=[];
@@ -131,4 +131,5 @@ function toastMsg(msg){const t=document.getElementById("toast");t.textContent=ms
 function submitLead(e){e.preventDefault();const d=new FormData(e.target);const leads=JSON.parse(localStorage.getItem("bazaar-leads")||"[]");leads.push({name:d.get("name"),email:d.get("email"),interest:d.get("interest"),date:new Date().toISOString()});localStorage.setItem("bazaar-leads",JSON.stringify(leads));closeModal();e.target.reset();toastMsg("Thanks for your interest! This demo saved your details in this browser only.");}
 saveCart();renderProducts();
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </body></html>
