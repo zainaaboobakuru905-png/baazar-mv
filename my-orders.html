@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>My orders · BazaarMV</title>
+<style>
+:root{--teal:#087e78;--ink:#142b35;--muted:#71838a;--line:#e8eeeb}*{box-sizing:border-box}body{margin:0;background:#f4f7f4;color:var(--ink);font:15px Arial,sans-serif}.wrap{max-width:900px;margin:auto;padding:25px 18px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center}.brand{font-size:23px;font-weight:800;color:var(--ink);text-decoration:none}.brand span{color:var(--teal)}.btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 14px;text-decoration:none;color:var(--ink);font-weight:700}h1{margin:30px 0 8px}.muted{color:var(--muted);font-size:13px;line-height:1.5}.notice,.order{background:#fff;border:1px solid var(--line);border-radius:14px;padding:17px;margin:15px 0}.order h2{font-size:16px;margin:0 0 7px}.row{display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap}.items{border-top:1px solid var(--line);margin-top:12px;padding-top:10px}.status{color:var(--teal);font-weight:700}
+</style></head><body><main class="wrap">
+<div class="top"><a class="brand" href="index.html">Bazaar<span>MV</span></a><a class="btn" href="index.html">← Marketplace</a></div>
+<h1>My orders</h1><p class="muted">Track order requests sent to BazaarMV sellers. Online payment is not enabled.</p>
+<div id="notice" class="notice">Checking your account…</div><div id="orders"></div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script>
+<script>
+const notice=document.getElementById("notice"),out=document.getElementById("orders");
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+async function start(){if(!window.supabase||!window.BAZAARMV_SUPABASE?.url||!window.BAZAARMV_SUPABASE?.publishableKey){notice.textContent="BazaarMV database connection is not configured.";return;}const db=window.supabase.createClient(window.BAZAARMV_SUPABASE.url,window.BAZAARMV_SUPABASE.publishableKey);const {data:{user}}=await db.auth.getUser();if(!user){notice.innerHTML='Please <a href="auth.html">sign in</a> to view your orders.';return;}const {data,error}=await db.from("orders").select("id,status,total_mvr,created_at,order_items(product_name,quantity,unit_price_mvr)").eq("buyer_id",user.id).order("created_at",{ascending:false});if(error){notice.textContent="Could not load orders: "+error.message;return;}notice.textContent=data.length?"Your order requests are shown below. Contact the seller directly to arrange payment and delivery.":"You have not sent any order requests yet.";out.innerHTML=data.map(o=>'<article class="order"><div class="row"><div><h2>Order '+esc(o.id.slice(0,8))+'</h2><span class="muted">'+new Date(o.created_at).toLocaleString()+'</span></div><div class="status">'+esc(o.status)+'</div></div><div class="items">'+(o.order_items||[]).map(i=>'<div class="row"><span>'+esc(i.product_name)+' × '+i.quantity+'</span><span>MVR '+(Number(i.unit_price_mvr)*Number(i.quantity)).toFixed(2)+'</span></div>').join("")+'</div><div class="row" style="margin-top:12px"><b>Total</b><b>MVR '+Number(o.total_mvr).toFixed(2)+'</b></div></article>').join("");}
+start();
+</script></body></html>
