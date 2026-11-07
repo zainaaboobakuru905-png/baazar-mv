@@ -72,3 +72,61 @@ create policy "Buyer and seller can view order items" on public.order_items for 
 
 -- No direct browser policies for order creation, status changes or stock updates.
 -- Add a trusted server/Edge Function before enabling real checkout.
+
+
+-- Seller applications and approval gate.
+create table if not exists public.seller_profiles (
+ user_id uuid primary key references public.profiles(id) on delete cascade,
+ shop_name text not null,
+ island text not null default '',
+ description text not null default '',
+ approval_status text not null default 'pending'
+   check (approval_status in ('pending','approved','rejected')),
+ created_at timestamptz not null default now()
+);
+alter table public.seller_profiles enable row level security;
+
+drop policy if exists "Seller reads own application" on public.seller_profiles;
+create policy "Seller reads own application" on public.seller_profiles
+ for select to authenticated using (user_id = (select auth.uid()));
+
+drop policy if exists "User submits seller application" on public.seller_profiles;
+create policy "User submits seller application" on public.seller_profiles
+ for insert to authenticated with check (
+   user_id = (select auth.uid()) and approval_status = 'pending'
+ );
+
+-- Replace the earlier product write policies: only approved sellers may manage listings.
+drop policy if exists "Sellers insert own products" on public.products;
+drop policy if exists "Sellers update own products" on public.products;
+drop policy if exists "Sellers delete own products" on public.products;
+
+create policy "Approved sellers insert own products" on public.products
+ for insert to authenticated with check (
+   seller_id = (select auth.uid()) and exists (
+     select 1 from public.seller_profiles s
+     where s.user_id = (select auth.uid()) and s.approval_status = 'approved'
+   )
+);
+create policy "Approved sellers update own products" on public.products
+ for update to authenticated using (
+   seller_id = (select auth.uid()) and exists (
+     select 1 from public.seller_profiles s
+     where s.user_id = (select auth.uid()) and s.approval_status = 'approved'
+   )
+) with check (
+   seller_id = (select auth.uid()) and exists (
+     select 1 from public.seller_profiles s
+     where s.user_id = (select auth.uid()) and s.approval_status = 'approved'
+   )
+);
+create policy "Approved sellers delete own products" on public.products
+ for delete to authenticated using (
+   seller_id = (select auth.uid()) and exists (
+     select 1 from public.seller_profiles s
+     where s.user_id = (select auth.uid()) and s.approval_status = 'approved'
+   )
+);
+
+-- Orders remain read-only from the browser until a trusted checkout function
+-- validates product prices, checks stock, writes order rows and decrements stock atomically.
