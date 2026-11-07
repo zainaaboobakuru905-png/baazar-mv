@@ -55,8 +55,10 @@ begin
     ) then raise exception 'A seller is not currently approved to receive orders.'; end if;
   end loop;
 
+  -- Count only products that actually exist, so unknown IDs are rejected.
   select count(*) into v_count
-  from jsonb_to_recordset(p_items) as i(product_id uuid, quantity integer);
+  from jsonb_to_recordset(p_items) as i(product_id uuid, quantity integer)
+  join public.products p on p.id = i.product_id;
   if v_count <> jsonb_array_length(p_items) then raise exception 'One or more products could not be found.'; end if;
 
   for v_seller in
@@ -115,6 +117,15 @@ begin
        or (v_current = 'Processing' and p_status in ('Completed','Cancelled'))) then
     raise exception 'This order status change is not allowed.';
   end if;
+
+  -- Restore reserved stock exactly once when the seller cancels an order.
+  if p_status = 'Cancelled' then
+    update public.products p
+    set stock_quantity = p.stock_quantity + oi.quantity, updated_at = now()
+    from public.order_items oi
+    where oi.order_id = p_order_id and p.id = oi.product_id;
+  end if;
+
   update public.orders set status = p_status, updated_at = now() where id = p_order_id;
 end;
 $$;
