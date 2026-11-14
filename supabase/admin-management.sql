@@ -5,6 +5,24 @@
 alter table public.seller_profiles
   add column if not exists is_suspended boolean not null default false;
 
+-- Enquiries must not be sent to unapproved or suspended sellers.
+drop policy if exists "Buyers send product enquiries" on public.product_enquiries;
+create policy "Buyers send product enquiries"
+on public.product_enquiries for insert to authenticated
+with check (
+  sender_id = (select auth.uid())
+  and seller_id <> (select auth.uid())
+  and exists (
+    select 1 from public.products p
+    join public.seller_profiles s on s.user_id = p.seller_id
+    where p.id = product_enquiries.product_id
+      and p.seller_id = product_enquiries.seller_id
+      and p.is_active = true
+      and s.approval_status = 'approved'
+      and s.is_suspended = false
+  )
+);
+
 -- Public shoppers can only see active products from approved, non-suspended sellers.
 drop policy if exists "Anyone can view active products" on public.products;
 create policy "Public can view active approved seller products"
