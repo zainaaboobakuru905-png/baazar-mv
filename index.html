@@ -71,6 +71,7 @@ footer{background:#0d302f;color:#c7d9d3;padding:45px 0 25px}.footer-top{display:
 <div class="modal-backdrop" id="productDetailModal" onclick="if(event.target===this)closeProductDetails()"><div class="modal"><div class="modal-head"><h2 id="productDetailTitle">Product details</h2><button class="close" type="button" onclick="closeProductDetails()">×</button></div><div id="productDetailContent"></div></div></div>
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script>
 <script>
 const items=[
 {name:"Handwoven island tote",seller:"Palm & Thread · Malé",price:285,cat:"Fashion",emoji:"👜",bg:"#f4e2d8",tag:"LOCAL FAVOURITE"},
@@ -164,5 +165,4 @@ async function loadCommunityProducts(){
 }
 loadCommunityProducts();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </body></html>
