@@ -75,8 +75,7 @@ language sql
 stable
 security definer
 set search_path = public
-as $
-  select not exists (
+as $$1  select not exists (
     select 1 from public.seller_profiles s
     where s.user_id = p_seller_id and s.is_suspended = true
   );
