@@ -42,3 +42,34 @@ drop policy if exists "Sellers view received enquiries" on public.product_enquir
 create policy "Sellers view received enquiries"
 on public.product_enquiries for select to authenticated
 using (seller_id = (select auth.uid()));
+
+-- Seller replies stay inside BazaarMV; buyers can read them through their own enquiry rows.
+alter table public.product_enquiries
+  add column if not exists seller_reply text,
+  add column if not exists replied_at timestamptz;
+
+create or replace function public.seller_reply_to_product_enquiry(
+  p_enquiry_id uuid,
+  p_reply text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_reply text := trim(coalesce(p_reply, ''));
+begin
+  if auth.uid() is null then raise exception 'Please sign in.'; end if;
+  if char_length(v_reply) < 2 or char_length(v_reply) > 1000 then
+    raise exception 'Replies must be between 2 and 1000 characters.';
+  end if;
+  update public.product_enquiries
+  set seller_reply = v_reply, replied_at = now()
+  where id = p_enquiry_id and seller_id = auth.uid();
+  if not found then raise exception 'Enquiry not found for this seller.'; end if;
+end;
+$$;
+
+revoke all on function public.seller_reply_to_product_enquiry(uuid,text) from public;
+grant execute on function public.seller_reply_to_product_enquiry(uuid,text) to authenticated;
