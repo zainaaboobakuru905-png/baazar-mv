@@ -5,6 +5,59 @@
 alter table public.seller_profiles
   add column if not exists is_suspended boolean not null default false;
 
+-- Only approved, non-suspended sellers may upload or manage product photos.
+drop policy if exists "Sellers can upload their own product photos" on storage.objects;
+create policy "Sellers can upload their own product photos"
+on storage.objects for insert to authenticated
+with check (
+  bucket_id = 'product-images'
+  and (storage.foldername(name))[1] = auth.uid()::text
+  and exists (
+    select 1 from public.seller_profiles s
+    where s.user_id = auth.uid()
+      and s.approval_status = 'approved'
+      and s.is_suspended = false
+  )
+);
+
+drop policy if exists "Sellers can update their own product photos" on storage.objects;
+create policy "Sellers can update their own product photos"
+on storage.objects for update to authenticated
+using (
+  bucket_id = 'product-images'
+  and (storage.foldername(name))[1] = auth.uid()::text
+  and exists (
+    select 1 from public.seller_profiles s
+    where s.user_id = auth.uid()
+      and s.approval_status = 'approved'
+      and s.is_suspended = false
+  )
+)
+with check (
+  bucket_id = 'product-images'
+  and (storage.foldername(name))[1] = auth.uid()::text
+  and exists (
+    select 1 from public.seller_profiles s
+    where s.user_id = auth.uid()
+      and s.approval_status = 'approved'
+      and s.is_suspended = false
+  )
+);
+
+drop policy if exists "Sellers can delete their own product photos" on storage.objects;
+create policy "Sellers can delete their own product photos"
+on storage.objects for delete to authenticated
+using (
+  bucket_id = 'product-images'
+  and (storage.foldername(name))[1] = auth.uid()::text
+  and exists (
+    select 1 from public.seller_profiles s
+    where s.user_id = auth.uid()
+      and s.approval_status = 'approved'
+      and s.is_suspended = false
+  )
+);
+
 -- Enquiries must not be sent to unapproved or suspended sellers.
 drop policy if exists "Buyers send product enquiries" on public.product_enquiries;
 create policy "Buyers send product enquiries"
