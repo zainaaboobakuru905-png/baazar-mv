@@ -67,4 +67,10 @@ to authenticated
 using (
   bucket_id = 'product-images'
   and (storage.foldername(name))[1] = auth.uid()::text
+  and exists (
+    select 1 from public.seller_profiles s
+    where s.user_id = auth.uid()
+      and s.approval_status = 'approved'
+      and coalesce(s.is_suspended, false) = false
+  )
 );
