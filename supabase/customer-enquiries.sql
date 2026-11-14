@@ -26,8 +26,8 @@ with check (
   and exists (
     select 1 from public.products p
     join public.seller_profiles s on s.user_id = p.seller_id
-    where p.id = product_id
-      and p.seller_id = seller_id
+    where p.id = product_enquiries.product_id
+      and p.seller_id = product_enquiries.seller_id
       and p.is_active = true
       and s.approval_status = 'approved'
   )
