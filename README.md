@@ -20,7 +20,7 @@ https://zainaaboobakuru905-png.github.io/baazar-mv/
 ## Important limitations before public launch
 
 - Email confirmation depends on the Supabase email provider and its sending limits.
-- Seller applications require manual approval by a trusted administrator. An administrator account is separate from a seller account; never bypass the self-review restriction.
+- Seller applications require manual approval by a trusted administrator. An administrator account is separate from a seller account; never bypass the self-review restriction.\n- The admin dashboard needs `supabase/admin-management.sql` in addition to `admin-seller-approvals.sql` and `admin-dashboard.sql`.
 - BazaarMV currently records order requests only. It does not collect online payments or verify BML transfers.
 - Instagram and Facebook Shop / messaging synchronisation is not connected. This requires a Meta app, approved permissions, webhooks and a secure backend.
 - Seller dashboard supports direct product photo uploads to the public `product-images` Supabase Storage bucket (maximum 5 MB). Run `supabase/product-images-storage.sql` once in the Supabase SQL Editor after merging this feature.
