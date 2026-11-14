@@ -23,6 +23,7 @@ using (
 );
 
 -- Approved sellers only; suspension blocks listing changes.
+drop policy if exists "Sellers insert own products" on public.products;
 drop policy if exists "Approved sellers insert own products" on public.products;
 create policy "Approved non-suspended sellers insert own products"
 on public.products for insert to authenticated
@@ -36,6 +37,7 @@ with check (
   )
 );
 
+drop policy if exists "Sellers update own products" on public.products;
 drop policy if exists "Approved sellers update own products" on public.products;
 create policy "Approved non-suspended sellers update own products"
 on public.products for update to authenticated
@@ -58,6 +60,7 @@ with check (
   )
 );
 
+drop policy if exists "Sellers delete own products" on public.products;
 drop policy if exists "Approved sellers delete own products" on public.products;
 create policy "Approved non-suspended sellers delete own products"
 on public.products for delete to authenticated
