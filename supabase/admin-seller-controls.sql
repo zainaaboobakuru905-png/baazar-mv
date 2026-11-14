@@ -68,14 +68,27 @@ revoke all on function public.bazaar_admin_set_seller_suspended(uuid, boolean) f
 grant execute on function public.bazaar_admin_list_sellers() to authenticated;
 grant execute on function public.bazaar_admin_set_seller_suspended(uuid, boolean) to authenticated;
 
+-- Security-definer helper is needed because public visitors cannot read suspended seller rows.
+create or replace function public.bazaar_seller_can_show_products(p_seller_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $
+  select not exists (
+    select 1 from public.seller_profiles s
+    where s.user_id = p_seller_id and s.is_suspended = true
+  );
+$;
+revoke all on function public.bazaar_seller_can_show_products(uuid) from public;
+grant execute on function public.bazaar_seller_can_show_products(uuid) to anon, authenticated;
+
 drop policy if exists "Anyone can view active products" on public.products;
 create policy "Anyone can view active products" on public.products
 for select to anon, authenticated
 using (
-  (is_active = true and not exists (
-    select 1 from public.seller_profiles s
-    where s.user_id = products.seller_id and s.is_suspended = true
-  ))
+  (is_active = true and public.bazaar_seller_can_show_products(seller_id))
   or seller_id = (select auth.uid())
 );
 
