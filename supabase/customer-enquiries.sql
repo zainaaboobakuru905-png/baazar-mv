@@ -30,6 +30,7 @@ with check (
       and p.seller_id = product_enquiries.seller_id
       and p.is_active = true
       and s.approval_status = 'approved'
+      and coalesce(s.is_suspended, false) = false
   )
 );
 
