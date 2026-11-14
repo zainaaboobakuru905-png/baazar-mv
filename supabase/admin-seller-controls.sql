@@ -75,12 +75,13 @@ language sql
 stable
 security definer
 set search_path = public
-as $
+as $$
   select not exists (
     select 1 from public.seller_profiles s
     where s.user_id = p_seller_id and s.is_suspended = true
   );
-$;
+$$;
+
 revoke all on function public.bazaar_seller_can_show_products(uuid) from public;
 grant execute on function public.bazaar_seller_can_show_products(uuid) to anon, authenticated;
 
