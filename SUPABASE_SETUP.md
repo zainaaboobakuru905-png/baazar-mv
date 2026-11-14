@@ -12,11 +12,11 @@ The published BazaarMV site uses Supabase for accounts, seller applications, pro
 - `index.html`: marketplace, search, cart and order-request flow.
 - `my-orders.html`: buyer order tracking.
 
-The project owner previously reported that the base schema and marketplace-orders migration ran successfully in Supabase SQL Editor. The admin-management migration is newly added and has not been run against the live database. Compare the live Supabase database with the SQL files before re-running migrations.
+The project owner previously reported that the base schema and marketplace-orders migration ran successfully in Supabase SQL Editor. The admin-management migration is newly added and has not been run against the live database. It expects the customer-enquiries table from `customer-enquiries.sql` to exist; product photo storage policies should be applied after it. Compare the live Supabase database with the SQL files before re-running migrations.
 
 ## Seller approvals
 
-Seller applications start as `pending`. A trusted administrator must review applications. Admin access is separate from seller access; do not create a public approval button or allow users to approve themselves. Run the admin SQL files in this order: `admin-seller-approvals.sql`, `admin-dashboard.sql`, then `admin-management.sql`. A trusted adult/qualified developer must provision the admin user securely.
+Seller applications start as `pending`. A trusted administrator must review applications. Admin access is separate from seller access; do not create a public approval button or allow users to approve themselves. Run the SQL files in this order: `schema.sql`, `admin-seller-approvals.sql`, `admin-dashboard.sql`, `customer-enquiries.sql`, `marketplace-orders.sql`, `admin-management.sql`, then `product-images-storage.sql`. A trusted adult/qualified developer must provision the admin user securely. If a migration has already been run, do not blindly rerun it; compare the live database first.
 
 ## Email confirmation
 
