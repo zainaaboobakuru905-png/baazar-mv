@@ -29,6 +29,39 @@ create policy "Buyer and seller read payment submissions"
 on public.bazaar_payment_submissions for select to authenticated
 using (buyer_id = (select auth.uid()) or seller_id = (select auth.uid()));
 
+-- Seller QR codes are intentionally public so buyers can scan the seller's payment QR.
+insert into storage.buckets (id,name,public,file_size_limit,allowed_mime_types)
+values ('seller-bml-qr','seller-bml-qr',true,3145728,array['image/jpeg','image/png','image/webp'])
+on conflict (id) do update set public=true,file_size_limit=3145728,
+  allowed_mime_types=array['image/jpeg','image/png','image/webp'];
+
+drop policy if exists "Anyone can view seller BML QR codes" on storage.objects;
+create policy "Anyone can view seller BML QR codes"
+on storage.objects for select to anon,authenticated using (bucket_id='seller-bml-qr');
+
+drop policy if exists "Approved sellers upload own BML QR" on storage.objects;
+create policy "Approved sellers upload own BML QR"
+on storage.objects for insert to authenticated with check (
+  bucket_id='seller-bml-qr'
+  and (storage.foldername(name))[1]=(select auth.uid())::text
+  and exists (select 1 from public.seller_profiles sp
+    where sp.user_id=(select auth.uid()) and sp.approval_status='approved')
+);
+
+drop policy if exists "Sellers update own BML QR" on storage.objects;
+create policy "Sellers update own BML QR"
+on storage.objects for update to authenticated using (
+  bucket_id='seller-bml-qr' and (storage.foldername(name))[1]=(select auth.uid())::text
+) with check (
+  bucket_id='seller-bml-qr' and (storage.foldername(name))[1]=(select auth.uid())::text
+);
+
+drop policy if exists "Sellers delete own BML QR" on storage.objects;
+create policy "Sellers delete own BML QR"
+on storage.objects for delete to authenticated using (
+  bucket_id='seller-bml-qr' and (storage.foldername(name))[1]=(select auth.uid())::text
+);
+
 -- Private bucket for payment screenshots. Never make this bucket public.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('payment-proofs','payment-proofs',false,5242880,array['image/jpeg','image/png','image/webp','application/pdf'])
