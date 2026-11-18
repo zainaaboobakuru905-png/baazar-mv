@@ -214,3 +214,68 @@ grant execute on function public.bazaar_buyer_submit_payment_proof(uuid,text,tex
 grant execute on function public.bazaar_buyer_get_payment_instructions(uuid) to authenticated;
 grant execute on function public.bazaar_admin_list_payment_submissions() to authenticated;
 grant execute on function public.bazaar_admin_review_payment(uuid,text,text) to authenticated;
+
+-- Seller-controlled payment review: sellers can see and review only their own orders.
+drop policy if exists "Buyer and admin read payment proofs" on storage.objects;
+create policy "Buyer seller and admin read payment proofs"
+on storage.objects for select to authenticated
+using (
+  bucket_id = 'payment-proofs'
+  and (
+    (storage.foldername(name))[1] = (select auth.uid())::text
+    or exists (
+      select 1 from public.bazaar_payment_submissions ps
+      where ps.proof_path = storage.objects.name
+        and ps.seller_id = (select auth.uid())
+    )
+    or exists (select 1 from public.bazaar_admins a where a.user_id = (select auth.uid()))
+  )
+);
+
+create or replace function public.bazaar_seller_list_payment_submissions()
+returns table(submission_id uuid, order_id uuid, buyer_name text, total_mvr numeric,
+              transaction_reference text, proof_path text, payment_status text,
+              seller_note text, created_at timestamptz)
+language plpgsql security definer set search_path = public
+as $$
+begin
+  if auth.uid() is null then raise exception 'Please sign in.'; end if;
+  if not exists (select 1 from public.seller_profiles sp
+                 where sp.user_id=auth.uid() and sp.approval_status='approved') then
+    raise exception 'An approved seller account is required.';
+  end if;
+  return query
+    select ps.id, o.id, coalesce(b.display_name,'Buyer'), o.total_mvr,
+           ps.transaction_reference, ps.proof_path, ps.status, ps.admin_note, ps.created_at
+    from public.bazaar_payment_submissions ps
+    join public.orders o on o.id=ps.order_id
+    left join public.profiles b on b.id=ps.buyer_id
+    where ps.seller_id=auth.uid()
+    order by ps.created_at desc;
+end;
+$$;
+
+create or replace function public.bazaar_seller_review_payment(
+  p_submission_id uuid, p_status text, p_note text default ''
+) returns void language plpgsql security definer set search_path = public
+as $$
+begin
+  if auth.uid() is null then raise exception 'Please sign in.'; end if;
+  if p_status not in ('verified','rejected') then raise exception 'Invalid payment review status.'; end if;
+  if char_length(coalesce(p_note,'')) > 500 then raise exception 'Review note is too long.'; end if;
+  if not exists (select 1 from public.seller_profiles sp
+                 where sp.user_id=auth.uid() and sp.approval_status='approved') then
+    raise exception 'An approved seller account is required.';
+  end if;
+  update public.bazaar_payment_submissions
+     set status=p_status, admin_note=trim(coalesce(p_note,'')),
+         reviewed_at=now(), updated_at=now()
+   where id=p_submission_id and seller_id=auth.uid() and status <> 'verified';
+  if not found then raise exception 'Payment submission not found, not yours, or already verified.'; end if;
+end;
+$$;
+
+revoke all on function public.bazaar_seller_list_payment_submissions() from public;
+revoke all on function public.bazaar_seller_review_payment(uuid,text,text) from public;
+grant execute on function public.bazaar_seller_list_payment_submissions() to authenticated;
+grant execute on function public.bazaar_seller_review_payment(uuid,text,text) to authenticated;
