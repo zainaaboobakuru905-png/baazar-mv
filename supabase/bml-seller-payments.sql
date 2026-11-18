@@ -4,6 +4,7 @@
 
 alter table public.seller_profiles
   add column if not exists bml_payment_instructions text not null default '';
+alter table public.seller_profiles add column if not exists bml_qr_url text not null default '';
 
 create table if not exists public.bazaar_payment_submissions (
   id uuid primary key default gen_random_uuid(),
@@ -58,7 +59,8 @@ using (
   )
 );
 
-create or replace function public.bazaar_seller_update_bml_instructions(p_instructions text)
+drop function if exists public.bazaar_seller_update_bml_instructions(text);
+create or replace function public.bazaar_seller_update_bml_instructions(p_instructions text, p_qr_url text default '')
 returns void language plpgsql security definer set search_path = public
 as $$
 begin
@@ -66,8 +68,11 @@ begin
   if p_instructions is null or char_length(trim(p_instructions)) > 1000 then
     raise exception 'Payment instructions must be 1,000 characters or fewer.';
   end if;
+  if p_qr_url is null or (trim(p_qr_url) <> '' and (char_length(trim(p_qr_url)) > 500 or trim(p_qr_url) !~ '^https://')) then
+    raise exception 'QR image URL must be a valid HTTPS URL.';
+  end if;
   update public.seller_profiles
-     set bml_payment_instructions = trim(p_instructions)
+     set bml_payment_instructions = trim(p_instructions), bml_qr_url = trim(coalesce(p_qr_url,''))
    where user_id = auth.uid() and approval_status = 'approved';
   if not found then raise exception 'An approved seller account is required.'; end if;
 end;
@@ -106,7 +111,7 @@ end;
 $$;
 
 create or replace function public.bazaar_buyer_get_payment_instructions(p_order_id uuid)
-returns table(order_id uuid, seller_name text, shop_name text, instructions text,
+returns table(order_id uuid, seller_name text, shop_name text, instructions text, qr_url text,
               payment_status text, transaction_reference text, admin_note text)
 language plpgsql security definer set search_path = public
 as $$
@@ -114,7 +119,7 @@ begin
   if auth.uid() is null then raise exception 'Please sign in.'; end if;
   return query
     select o.id, coalesce(p.display_name,'Seller'), s.shop_name,
-           s.bml_payment_instructions,
+           s.bml_payment_instructions, s.bml_qr_url,
            coalesce(ps.status,'not_submitted'),
            coalesce(ps.transaction_reference,''),
            coalesce(ps.admin_note,'')
@@ -166,12 +171,12 @@ begin
 end;
 $$;
 
-revoke all on function public.bazaar_seller_update_bml_instructions(text) from public;
+revoke all on function public.bazaar_seller_update_bml_instructions(text,text) from public;
 revoke all on function public.bazaar_buyer_submit_payment_proof(uuid,text,text) from public;
 revoke all on function public.bazaar_buyer_get_payment_instructions(uuid) from public;
 revoke all on function public.bazaar_admin_list_payment_submissions() from public;
 revoke all on function public.bazaar_admin_review_payment(uuid,text,text) from public;
-grant execute on function public.bazaar_seller_update_bml_instructions(text) to authenticated;
+grant execute on function public.bazaar_seller_update_bml_instructions(text,text) to authenticated;
 grant execute on function public.bazaar_buyer_submit_payment_proof(uuid,text,text) to authenticated;
 grant execute on function public.bazaar_buyer_get_payment_instructions(uuid) to authenticated;
 grant execute on function public.bazaar_admin_list_payment_submissions() to authenticated;
