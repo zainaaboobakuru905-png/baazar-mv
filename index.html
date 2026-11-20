@@ -178,4 +178,25 @@ async function loadCommunityProducts(){
 }
 loadCommunityProducts();
 </script>
+
+<section class="section" id="saved"><div class="wrap"><h2>Saved favourites</h2><div class="products" id="savedProducts"><p class="empty">You have not saved any products yet.</p></div></div></section>
+<script>
+let wishlist = JSON.parse(localStorage.getItem("bazaar-wishlist") || "[]");
+function toggleWishlist(id) {
+ id=String(id);
+ wishlist=wishlist.includes(id)?wishlist.filter(x=>x!==id):[...wishlist,id];
+ localStorage.setItem("bazaar-wishlist",JSON.stringify(wishlist));
+ renderProducts();
+ renderSavedWishlist();
+}
+function renderSavedWishlist() {
+ const host=document.getElementById("savedProducts");
+ if(!host)return;
+ const saved=wishlist.map(id=>allProducts().find(p=>String(p.id||p.name)===id)).filter(Boolean);
+ host.innerHTML=saved.length?saved.map(p=>'<article class="product"><div class="product-info"><h3>'+safe(p.name)+'</h3><p class="price">MVR '+Number(p.price||0).toFixed(2)+'</p><button class="btn" onclick="toggleWishlist(\''+safe(String(p.id||p.name))+'\')">Remove</button></div></article>').join(""):'<p class="empty">You have not saved any products yet.</p>';
+}
+const wishlistOriginalRender=renderProducts;
+renderProducts=function(){wishlistOriginalRender();document.querySelectorAll("#products .product").forEach(card=>{const id=card.dataset.productId;if(!id)return;const b=document.createElement("button");b.className="btn";b.type="button";b.textContent=wishlist.includes(id)?"♥ Saved":"♡ Save";b.onclick=e=>{e.stopPropagation();toggleWishlist(id);};card.querySelector(".product-info")?.appendChild(b);});renderSavedWishlist();};
+renderProducts();
+</script>
 </body></html>
