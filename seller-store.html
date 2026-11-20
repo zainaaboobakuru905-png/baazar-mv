@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seller shop | BazaarMV</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#142b35;--muted:#71838a;--teal:#087e78;--mint:#dff4ee;--cream:#fbfaf6;--line:#e8eeeb}
+*{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--ink);font-family:"DM Sans",sans-serif}.wrap{width:min(1080px,calc(100% - 32px));margin:auto}header{padding:20px 0;border-bottom:1px solid var(--line)}a{color:var(--teal);text-decoration:none;font-weight:700}.brand{font:800 22px Manrope;color:var(--ink)}.hero{margin:32px auto;background:#e2f2eb;border-radius:24px;padding:32px}.eyebrow{color:var(--teal);font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase}.hero h1{font:800 clamp(30px,5vw,46px) Manrope;margin:10px 0}.muted{color:var(--muted);line-height:1.7}.products{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;margin:24px 0 60px}.product{background:white;border:1px solid var(--line);border-radius:18px;overflow:hidden}.product img{width:100%;height:190px;object-fit:cover;background:#e1eee6}.info{padding:15px}.info h3{margin:0 0 8px;font-size:15px}.price{color:var(--teal);font-weight:800}.status{padding:20px;background:white;border-radius:14px;color:var(--muted)}.back{display:inline-block;margin:18px 0}
+</style>
+</head>
+<body>
+<header><div class="wrap"><a class="brand" href="index.html">Bazaar<span style="color:#087e78">MV</span></a></div></header>
+<main class="wrap">
+<a class="back" href="index.html#marketplace">← Back to marketplace</a>
+<section class="hero"><div class="eyebrow">Local seller storefront</div><h1 id="shopName">Loading shop…</h1><p class="muted" id="shopDescription"></p><p class="muted" id="shopIsland"></p></section>
+<h2>Shop products</h2><div id="status" class="status">Loading this seller’s products…</div><section id="products" class="products"></section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script>
+<script>
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const imageUrl=v=>{try{const u=new URL(String(v||""));return ["https:","http:"].includes(u.protocol)?u.href:""}catch{return ""}};
+(async()=>{
+ const id=new URLSearchParams(location.search).get("seller");
+ const status=document.getElementById("status");
+ if(!id){status.textContent="This shop link is missing its seller ID.";document.getElementById("shopName").textContent="Shop not found";return;}
+ if(!window.supabase||!window.BAZAARMV_SUPABASE?.url||!window.BAZAARMV_SUPABASE?.publishableKey){status.textContent="Marketplace connection is unavailable.";return;}
+ const client=window.supabase.createClient(window.BAZAARMV_SUPABASE.url,window.BAZAARMV_SUPABASE.publishableKey);
+ const {data:shop,error:shopError}=await client.from("bazaar_public_seller_stores").select("user_id,shop_name,island,description").eq("user_id",id).maybeSingle();
+ if(shopError){status.textContent="Could not load shop details. Please check the BazaarMV storefront SQL setup.";return;}
+ if(!shop){document.getElementById("shopName").textContent="Shop unavailable";status.textContent="This seller shop is not available or has not been approved.";return;}
+ document.getElementById("shopName").textContent=shop.shop_name||"Local seller";
+ document.getElementById("shopDescription").textContent=shop.description||"Discover products from this local seller.";
+ document.getElementById("shopIsland").textContent=shop.island?"📍 "+shop.island:"";
+ const {data:products,error}=await client.from("products").select("id,name,description,price_mvr,stock_quantity,image_url,category").eq("seller_id",id).eq("is_active",true).order("created_at",{ascending:false});
+ if(error){status.textContent="Could not load this seller’s products.";return;}
+ if(!products?.length){status.textContent="This seller has not listed any products yet.";return;}
+ status.remove();
+ document.getElementById("products").innerHTML=products.map(p=>'<article class="product">'+(imageUrl(p.image_url)?'<img src="'+esc(imageUrl(p.image_url))+'" alt="'+esc(p.name)+'">':'<div style="height:190px;display:grid;place-items:center;background:#e1eee6;font-size:48px">✦</div>')+'<div class="info"><h3>'+esc(p.name)+'</h3><div class="price">MVR '+Number(p.price_mvr).toFixed(2)+'</div><p class="muted">'+esc(p.description||"")+'</p><div class="muted">'+(Number(p.stock_quantity)>0?Number(p.stock_quantity)+" in stock":"Currently out of stock")+'</div></div></article>').join("");
+})().catch(err=>{document.getElementById("status").textContent="Something went wrong while loading this shop.";console.error(err);});
+</script>
+</body></html>
