@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Messages · BazaarMV</title>
 <style>
-:root{--teal:#087e78;--ink:#142b35;--muted:#71838a;--line:#e8eeeb}*{box-sizing:border-box}body{margin:0;background:#f4f7f4;color:var(--ink);font:15px Arial,sans-serif}.wrap{max-width:980px;margin:auto;padding:24px 16px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.brand{font-size:23px;font-weight:800;color:var(--ink);text-decoration:none}.brand span{color:var(--teal)}.btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 13px;color:var(--ink);font-weight:700;cursor:pointer;text-decoration:none}.primary{background:var(--teal);color:white;border:0}h1{margin:25px 0 6px}.muted{color:var(--muted);font-size:13px;line-height:1.5}.notice,.panel{background:white;border:1px solid var(--line);border-radius:14px;padding:16px;margin:14px 0}.layout{display:grid;grid-template-columns:300px 1fr;gap:14px}.threads{display:grid;gap:8px}.thread{width:100%;text-align:left;padding:12px;border:1px solid var(--line);border-radius:10px;background:white;cursor:pointer}.thread.active{border-color:var(--teal);background:#eff8f5}.thread b{display:block}.chat{height:440px;overflow:auto;display:flex;flex-direction:column;gap:9px;padding:8px 2px}.bubble{max-width:82%;padding:10px 12px;border-radius:13px;background:#eef3f1;align-self:flex-start;white-space:pre-wrap;overflow-wrap:anywhere}.bubble.mine{background:#dff2eb;align-self:flex-end}.bubble small{display:block;color:var(--muted);font-size:10px;margin-top:5px}.compose{display:flex;gap:8px;margin-top:10px}.compose textarea{flex:1;min-width:0;resize:vertical;min-height:48px;max-height:130px;padding:11px;border:1px solid var(--line);border-radius:10px;font:inherit}.empty{padding:20px;text-align:center;color:var(--muted)}@media(max-width:700px){.layout{grid-template-columns:1fr}.chat{height:360px}}
+:root{--teal:#087e78;--ink:#142b35;--muted:#71838a;--line:#e8eeeb}*{box-sizing:border-box}body{margin:0;background:#f4f7f4;color:var(--ink);font:15px Arial,sans-serif}.wrap{max-width:980px;margin:auto;padding:24px 16px}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.brand{font-size:23px;font-weight:800;color:var(--ink);text-decoration:none}.brand span{color:var(--teal)}.btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 13px;color:var(--ink);font-weight:700;cursor:pointer;text-decoration:none}.primary{background:var(--teal);color:white;border:0}h1{margin:25px 0 6px}.muted{color:var(--muted);font-size:13px;line-height:1.5}.notice,.panel{background:white;border:1px solid var(--line);border-radius:14px;padding:16px;margin:14px 0}.layout{display:grid;grid-template-columns:300px 1fr;gap:14px}.threads{display:grid;gap:8px}.thread{width:100%;text-align:left;padding:12px;border:1px solid var(--line);border-radius:10px;background:white;cursor:pointer}.thread.active{border-color:var(--teal);background:#eff8f5}.thread b{display:block}.unread-badge{display:inline-block;background:#087e78;color:#fff;border-radius:999px;padding:2px 7px;font-size:11px;margin-left:6px}.nav-badge{display:inline-block;background:#087e78;color:#fff;border-radius:999px;padding:2px 7px;font-size:11px;margin-left:4px}.chat{height:440px;overflow:auto;display:flex;flex-direction:column;gap:9px;padding:8px 2px}.bubble{max-width:82%;padding:10px 12px;border-radius:13px;background:#eef3f1;align-self:flex-start;white-space:pre-wrap;overflow-wrap:anywhere}.bubble.mine{background:#dff2eb;align-self:flex-end}.bubble small{display:block;color:var(--muted);font-size:10px;margin-top:5px}.compose{display:flex;gap:8px;margin-top:10px}.compose textarea{flex:1;min-width:0;resize:vertical;min-height:48px;max-height:130px;padding:11px;border:1px solid var(--line);border-radius:10px;font:inherit}.empty{padding:20px;text-align:center;color:var(--muted)}@media(max-width:700px){.layout{grid-template-columns:1fr}.chat{height:360px}}
 </style></head><body><main class="wrap">
-<div class="top"><a class="brand" href="index.html">Bazaar<span>MV</span></a><div><a class="btn" href="my-orders.html">My orders</a> <a class="btn" href="seller.html">Seller dashboard</a></div></div>
+<div class="top"><a class="brand" href="index.html">Bazaar<span>MV</span></a><div><a class="btn" href="my-orders.html">My orders</a> <a class="btn" href="seller.html">Seller dashboard</a> <span id="unreadTotal" class="nav-badge" hidden></span></div></div>
 <h1>Messages</h1><p class="muted">Chat with buyers or approved sellers about marketplace products. Keep payment details and passwords out of messages.</p>
 <div id="notice" class="notice">Connecting…</div>
 <div class="layout"><section class="panel"><h2 style="font-size:17px;margin:0 0 10px">Conversations</h2><div id="threads" class="threads"><p class="muted">Loading…</p></div></section>
@@ -12,7 +12,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script>
 <script>
 const $=id=>document.getElementById(id),esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-let db,user,threads=[],active=null;
+let db,user,threads=[],active=null,realtimeChannel=null;
 function note(t){$("notice").textContent=t}
 function key(m){return [m.buyer_id,m.seller_id,m.product_id||""].join("|")}
 async function init(){
@@ -30,15 +30,27 @@ async function init(){
   await loadMessages();
  }else{await loadThreads()}
  note("Messages are private to the buyer and seller.");
+ subscribeToMessages();
+}
+function subscribeToMessages(){
+ if(realtimeChannel)return;
+ realtimeChannel=db.channel("bazaar-messages-live-"+user.id)
+  .on("postgres_changes",{event:"*",schema:"public",table:"bazaar_messages"},async payload=>{
+    await loadThreads();
+    const row=payload.new||payload.old;
+    if(active&&row&&row.buyer_id===active.buyer_id&&row.seller_id===active.seller_id&&(row.product_id||null)===(active.product_id||null)) await loadMessages();
+  }).subscribe();
 }
 async function loadThreads(){
  const {data,error}=await db.from("bazaar_messages").select("id,buyer_id,seller_id,product_id,sender_id,body,created_at,read_at").or("buyer_id.eq."+user.id+",seller_id.eq."+user.id).order("created_at",{ascending:false}).limit(300);
  if(error){$("threads").innerHTML='<p class="muted">Could not load conversations: '+esc(error.message)+'</p>';return}
  const grouped=new Map();(data||[]).forEach(m=>{const k=key(m);if(!grouped.has(k))grouped.set(k,m)});
  threads=[...grouped.values()];
+ const unreadByThread=new Map();(data||[]).forEach(m=>{if(m.sender_id!==user.id&&!m.read_at){const k=key(m);unreadByThread.set(k,(unreadByThread.get(k)||0)+1)}});
+ const unreadTotal=[...unreadByThread.values()].reduce((a,b)=>a+b,0);$("unreadTotal").hidden=!unreadTotal;$("unreadTotal").textContent=unreadTotal?unreadTotal+" unread":"";
  const storeIds=[...new Set(threads.filter(t=>t.buyer_id===user.id).map(t=>t.seller_id))];
  let stores={};if(storeIds.length){const {data:s}=await db.from("bazaar_public_seller_stores").select("user_id,shop_name").in("user_id",storeIds);stores=Object.fromEntries((s||[]).map(x=>[x.user_id,x.shop_name]))}
- $("threads").innerHTML=threads.length?threads.map((t,i)=>'<button class="thread" data-thread="'+i+'"><b>'+esc(t.buyer_id===user.id?(stores[t.seller_id]||"Seller"):"Buyer")+'</b><span class="muted">'+esc(t.product_id?"Product conversation":"Conversation")+' · '+esc(t.body.slice(0,70))+'</span></button>').join(""):'<div class="empty">No conversations yet. Start a chat from a live product listing.</div>';
+ $("threads").innerHTML=threads.length?threads.map((t,i)=>'<button class="thread" data-thread="'+i+'"><b>'+esc(t.buyer_id===user.id?(stores[t.seller_id]||"Seller"):"Buyer")+(unreadByThread.get(key(t))?' <span class="unread-badge">'+unreadByThread.get(key(t))+'</span>':"")+'</b><span class="muted">'+esc(t.product_id?"Product conversation":"Conversation")+' · '+esc(t.body.slice(0,70))+'</span></button>').join(""):'<div class="empty">No conversations yet. Start a chat from a live product listing.</div>';
 }
 $("threads").addEventListener("click",async e=>{const b=e.target.closest("[data-thread]");if(!b)return;const t=threads[Number(b.dataset.thread)];active={buyer_id:t.buyer_id,seller_id:t.seller_id,product_id:t.product_id,product_name:"Product conversation",other_name:t.buyer_id===user.id?"Seller":"Buyer"};document.querySelectorAll(".thread").forEach(x=>x.classList.toggle("active",x===b));await loadMessages()});
 async function loadMessages(){
