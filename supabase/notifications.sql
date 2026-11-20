@@ -33,7 +33,8 @@ using (user_id = (select auth.uid()))
 with check (user_id = (select auth.uid()));
 
 revoke all on public.bazaar_notifications from anon, public;
-grant select, update on public.bazaar_notifications to authenticated;
+grant select on public.bazaar_notifications to authenticated;
+grant update (read_at) on public.bazaar_notifications to authenticated;
 
 -- New order request -> notify the seller.
 create or replace function public.bazaar_notify_new_order()
