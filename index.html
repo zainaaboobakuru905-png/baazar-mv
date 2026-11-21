@@ -33,7 +33,7 @@ footer{background:#0d302f;color:#c7d9d3;padding:45px 0 25px}.footer-top{display:
 <header><div class="wrap" style="display:flex;align-items:center;justify-content:space-between;width:100%">
 <a class="brand" href="#"><span class="brandmark">b.</span><span>Bazaar<em>MV</em></span></a>
 <nav id="nav"><a href="#marketplace">Marketplace</a><a href="#how">How it works</a><a href="#sellers">For sellers</a><a href="seller.html">Seller dashboard</a><a href="my-orders.html">My orders</a><a href="auth.html">Account / Sign in</a></nav>
-<div class="nav-actions"><button class="btn btn-outline" onclick="openCart()">Cart (<span id="cartCount">0</span>)</button><button class="btn btn-outline" onclick="openModal('seller')">Become a seller</button><button class="btn btn-primary" onclick="openModal('join')">Get started ↗</button><button class="menu-btn" onclick="document.getElementById('nav').classList.toggle('open')">☰</button></div>
+<div class="nav-actions"><button class="btn btn-outline" id="enablePushButton" type="button" onclick="enableBazaarBrowserAlerts()">Enable alerts</button><button class="btn btn-outline" onclick="openCart()">Cart (<span id="cartCount">0</span>)</button><button class="btn btn-outline" onclick="openModal('seller')">Become a seller</button><button class="btn btn-primary" onclick="openModal('join')">Get started ↗</button><button class="menu-btn" onclick="document.getElementById('nav').classList.toggle('open')">☰</button></div>
 </div></header>
 <main>
 <section class="wrap hero">
@@ -199,4 +199,42 @@ const wishlistOriginalRender=renderProducts;
 renderProducts=function(){wishlistOriginalRender();document.querySelectorAll("#products .product").forEach(card=>{const id=card.dataset.productId;if(!id)return;const b=document.createElement("button");b.className="btn";b.type="button";b.textContent=wishlist.includes(id)?"♥ Saved":"♡ Save";b.onclick=e=>{e.stopPropagation();toggleWishlist(id);};card.querySelector(".product-info")?.appendChild(b);});renderSavedWishlist();};
 renderProducts();
 </script>
+
+<script>
+async function enableBazaarBrowserAlerts(){
+ const button=document.getElementById("enablePushButton");
+ if(!("Notification" in window) || !("serviceWorker" in navigator)){
+  toastMsg("Browser notifications are not supported in this browser.");
+  return;
+ }
+ if(!window.isSecureContext){
+  toastMsg("Browser alerts require a secure HTTPS connection.");
+  return;
+ }
+ button.disabled=true;
+ try{
+  const registration=await navigator.serviceWorker.register("./service-worker.js");
+  const permission=await Notification.requestPermission();
+  if(permission==="granted"){
+   button.textContent="Alerts allowed";
+   toastMsg("Browser permission granted. BazaarMV still needs its secure push sender before alerts can arrive while the site is closed.");
+   await registration.ready;
+  }else if(permission==="denied"){
+   button.textContent="Alerts blocked";
+   toastMsg("Notifications are blocked in Chrome. You can change this in Site settings.");
+  }else{
+   button.disabled=false;
+   toastMsg("Notification permission was not granted.");
+  }
+ }catch(error){
+  button.disabled=false;
+  toastMsg("Couldn't enable browser alerts. Please try again.");
+  console.error("BazaarMV browser alerts:",error);
+ }
+}
+if("serviceWorker" in navigator && window.isSecureContext){
+ window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(error=>console.warn("BazaarMV service worker:",error)));
+}
+</script>
+
 </body></html>
