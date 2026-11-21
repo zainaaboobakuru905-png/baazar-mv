@@ -1,0 +1,2 @@
+[functions.bazaar-push]
+verify_jwt = false
