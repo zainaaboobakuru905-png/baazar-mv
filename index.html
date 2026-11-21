@@ -201,35 +201,70 @@ renderProducts();
 </script>
 
 <script>
+function bazaarBase64UrlToBytes(value){
+ const padding="=".repeat((4-value.length%4)%4);
+ const base64=(value+padding).replace(/-/g,"+").replace(/_/g,"/");
+ const raw=atob(base64);
+ return Uint8Array.from([...raw].map(char=>char.charCodeAt(0)));
+}
 async function enableBazaarBrowserAlerts(){
  const button=document.getElementById("enablePushButton");
- if(!("Notification" in window) || !("serviceWorker" in navigator)){
-  toastMsg("Browser notifications are not supported in this browser.");
+ if(!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)){
+  toastMsg("Browser push notifications are not supported in this browser.");
   return;
  }
  if(!window.isSecureContext){
   toastMsg("Browser alerts require a secure HTTPS connection.");
   return;
  }
+ if(!window.supabase||!window.BAZAARMV_SUPABASE?.url||!window.BAZAARMV_SUPABASE?.publishableKey){
+  toastMsg("BazaarMV database connection is unavailable.");
+  return;
+ }
  button.disabled=true;
  try{
-  const registration=await navigator.serviceWorker.register("./service-worker.js");
-  const permission=await Notification.requestPermission();
-  if(permission==="granted"){
-   button.textContent="Alerts allowed";
-   toastMsg("Browser permission granted. BazaarMV still needs its secure push sender before alerts can arrive while the site is closed.");
-   await registration.ready;
-  }else if(permission==="denied"){
-   button.textContent="Alerts blocked";
-   toastMsg("Notifications are blocked in Chrome. You can change this in Site settings.");
-  }else{
-   button.disabled=false;
-   toastMsg("Notification permission was not granted.");
+  const db=window.supabase.createClient(window.BAZAARMV_SUPABASE.url,window.BAZAARMV_SUPABASE.publishableKey);
+  const {data:{user},error:authError}=await db.auth.getUser();
+  if(authError||!user){
+   toastMsg("Please sign in before enabling browser alerts.");
+   window.location.href="auth.html";
+   return;
   }
+  const permission=await Notification.requestPermission();
+  if(permission!=="granted"){
+   button.textContent=permission==="denied"?"Alerts blocked":"Enable alerts";
+   toastMsg(permission==="denied"?"Notifications are blocked in Chrome. Change this in Site settings.":"Notification permission was not granted.");
+   return;
+  }
+  const registration=await navigator.serviceWorker.register("./service-worker.js");
+  await navigator.serviceWorker.ready;
+  const keyResponse=await fetch("https://uoxwcbbkiqmasfpujggk.supabase.co/functions/v1/bazaar-push");
+  const keyData=await keyResponse.json();
+  if(!keyResponse.ok||!keyData.publicKey)throw new Error(keyData.error||"Push sender public key is unavailable.");
+  let subscription=await registration.pushManager.getSubscription();
+  if(!subscription){
+   subscription=await registration.pushManager.subscribe({
+    userVisibleOnly:true,
+    applicationServerKey:bazaarBase64UrlToBytes(keyData.publicKey)
+   });
+  }
+  const subscriptionJson=subscription.toJSON();
+  const {error:saveError}=await db.from("bazaar_push_subscriptions").upsert({
+   user_id:user.id,
+   endpoint:subscription.endpoint,
+   p256dh:subscriptionJson.keys?.p256dh,
+   auth:subscriptionJson.keys?.auth,
+   updated_at:new Date().toISOString()
+  },{onConflict:"endpoint"});
+  if(saveError)throw saveError;
+  button.textContent="Alerts enabled";
+  toastMsg("Browser alerts are enabled for this account on this device.");
  }catch(error){
   button.disabled=false;
-  toastMsg("Couldn't enable browser alerts. Please try again.");
+  toastMsg("Couldn't enable browser alerts: "+(error.message||"Please try again."));
   console.error("BazaarMV browser alerts:",error);
+ }finally{
+  button.disabled=false;
  }
 }
 if("serviceWorker" in navigator && window.isSecureContext){
